@@ -147,6 +147,16 @@ require(['vue', 'qwery', 'reqwest'], function(Vue, qwery, reqwest) {
 			teacherScore: 10 // 老师评分
 		},
 
+		// 实例创建并渲染完成后移除正在启动页
+		ready: function() {
+			var startPage = qwery("#start-page")[0],
+				content = qwery("p", startPage)[0];
+			content.innerText = "即将完成...";
+			setTimeout(function() {
+				startPage.remove();
+			}, 1000);
+		},
+
 		computed: {
 			// 如果在详细信息页则显示返回按钮
 			detailBack: function() {

@@ -117,11 +117,11 @@ require(['vue', 'qwery', 'reqwest'], function(Vue, qwery, reqwest) {
 			},
 			headBgColors: {
 				"top": "#db4437",
-				"filter": "#03a9f4",
-				"search": "#455a64",
+				"filter": "#009688",
+				"search": "#2980b9",
 				"help": "#0f9d58",
-				"rating": "#ffa000",
-				"detail": "#785447"
+				"rating": "#03A9F4",
+				"detail": "#3F51B5"
 			},
 
 			// 是否显示导航

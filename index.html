@@ -2,278 +2,269 @@
 <html lang="zh-cn">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+	<meta name="format-detection" content="telephone=no">
 	<title>Lessen</title>
-	<link rel="stylesheet" href="css/basic.css?v=20160523">
+	<link rel="stylesheet" href="./css/style.css">
 </head>
-<body>
-	<div id="start-page" class="start-page">
-		<p id="start-page-content">正在启动 Lessen...</p>
-	</div>
-	<div id="app" v-cloak>
-		<div id="mask" class="mask" v-if="mask" transition="mask" @click="hideNav"></div>
-		<div class="toast" v-show="toast" transition="fade">{{toastMsg}}</div>
-		<div id="head" class="head" :style="headBg" :class="headExpand">
-			<div class="menu head-btn" :class="detailBack" @click="showNav"></div>
-			<h1 class="title" v-if="title">{{currentPageTitle}}</h1>
-			<div class="search-wrapper" v-if="searchBox">
-				<div class="search-box">
-					<input type="text" placeholder="搜索课程" @keyup.enter="searchAction" @change="searchAction">
+<body id="app" v-cloak>
+	<div class="mask" @click="toggleSidebar" @touchmove="preventMask" v-show="isShowSidebar" transition="fade"></div>
+	<div class="toast" v-text="toast.message" v-show="toast.show" transition="fade"></div>
+	<div class="title-container" :class="titleContainerClass" :style="titleContainerStyle">
+		<div class="menu" @click="toggleSidebar" v-show="!windowShow.detail">
+			<span class="icon-menu"></span>
+		</div>
+		<div class="menu" @click="back" v-show="windowShow.detail">
+			<span class="icon-back"></span>
+		</div>
+		<h1 class="title">
+			<div v-text="title" v-show="!showSearch"></div>
+			<div class="search-container" v-show="showSearch">
+				<div class="search-input">
+					<input type="text" placeholder="课程名称/老师姓名"
+					@keyup="search($event, 'search') | debounce 500">
 				</div>
 			</div>
-			<div class="search-btn head-btn" v-if="searchBtn" @click="changePage"></div>
-			<div class="tab-wrapper">
-				<ul class="tab" @click="tabSwitch">
-					<li data-type="0" class="tab-li-current">所有类别</li>
-					<li data-type="1">社会科学与人类发展</li>
-					<li data-type="2">传统文化与世界文明</li>
-					<li data-type="3">医学与生命科学</li>
-					<li data-type="4">人文学科与艺术审美</li>
-					<li data-type="5">自然科学与现代技术</li>
-				</ul>
-			</div>
+		</h1>
+		<div class="search menu">
+			<span class="icon-search" @click="changeWindow('searchBtn')"></span>
 		</div>
-		<nav class="nav" :class="nav">
-			<h3 data-page="top"><span @click="changePage">Lessen</span></h3>
-			<ul @click="changePage">
-				<li data-page="top">
-					<div class="nav-icon top-icon"></div>
-					<div class="nav-title">排行榜</div>
-				</li>
-				<li data-page="rating">
-					<div class="nav-icon rating-icon"></div>
-					<div class="nav-title">评分</div>
-				</li>
-				<li data-page="filter">
-					<div class="nav-icon filter-icon"></div>
-					<div class="nav-title">筛选</div>
-				</li>
-				<li data-page="search">
-					<div class="nav-icon search-icon"></div>
-					<div class="nav-title">搜索</div>
-				</li>
-				<li data-page="help">
-					<div class="nav-icon help-icon"></div>
-					<div class="nav-title">帮助</div>
+		<div id="tab-container" class="tab-container" :class="tabContainerClass" @click="changeTab" @wheel="wheel">
+			<div class="tab-bar" :style="tabBarPosition":></div>
+			<ul class="tab">
+				<li data-index="0" data-type="all" class="tab-current"">所有类别</li>
+				<li data-index="1" data-type="natureScience">自然科学与现代技术</li>
+				<li data-index="2" data-type="societyScience">社会科学与现代技术</li>
+				<li data-index="3" data-type="traditionalCulture">传统文化与世界文明</li>
+				<li data-index="4" data-type="medicalScience">医学与生命科学</li>
+				<li data-index="5" data-type="humanities">人文学科与艺术审美</li>
+			</ul>
+		</div>
+	</div>
+	<nav id="sidebar" class="sidebar" :class="{'sidebar-show': isShowSidebar}" @touchstart="slideToToggleSidebar('hide', $event)" @touchmove="slideToToggleSidebar('hide', $event)" @touchend="slideToToggleSidebar('hide', $event)" @touchcancel="slideToToggleSidebar('hide', $event)">
+		<h2 @click="changeWindow('hotList')">Lessen</h2>
+		<ul>
+			<li @click="changeWindow('hotList')"><span class="icon-hot"></span>热门</li>
+			<li @click="changeWindow('filter')"><span class="icon-filter"></span>筛选</li>
+			<li @click="changeWindow('rate')"><span class="icon-rate"></span>评分</li>
+			<li @click="changeWindow('search')"><span class="icon-search"></span>搜索</li>
+			<li @click="changeWindow('help')"><span class="icon-help"></span>帮助</li>
+			<li @click="changeWindow('about')"><span class="icon-about"></span>关于</li>
+		</ul>
+	</nav>
+	<ul class="window-container" :class="windowContainerClass" @touchstart="slideToToggleSidebar('open', $event)" @touchmove="slideToToggleSidebar('open', $event)" @touchend="slideToToggleSidebar('open', $event)" @touchcancel="slideToToggleSidebar('open', $event)">
+		<li class="window" v-show="windowShow.hotList" transition="slide">
+			<p class="loading" v-show="loading.hotList">正在加载</p>
+			<ul class="hot-list" v-show="!loading.hotList">
+				<li v-for="course in hotList" data-code="{{course.code}}" @click="showDetail">
+					<div class="course-icon" data-type="{{course.type}}"></div>
+					<div class="course-detail">
+						<h3 v-text="course.name"></h3>
+						<p class="course-info" v-text="course.teacher"></p>
+						<p class="course-info"><span v-text="course.rateTimes"></span>次评分、<span v-text="course.commentTimes"></span>条评论</p>
+					</div>
+					<div class="course-score course-icon" v-text="course.score"></div>
 				</li>
 			</ul>
-			<div class="nav-foot">
-				<p>&copy; 2016 Roland Reed</p>
-			</div>
-		</nav>
-		<div class="body" :class="bodyExpand">
-			<div class="page" v-if="top" transition="page">
-				<div data-page="rating">
-					<div class="rating-btn" @click="changePage"></div>
+		</li>
+		<li class="window" v-show="windowShow.detail" transition="slide">
+			<p class="loading" v-show="loading.detail">正在加载</p>
+			<p class="loading" v-show="error.detail">无网络连接</p>
+			<div class="filter detail" v-show="!loading.detail && !error.detail">
+				<div class="detail-cell">
+					<div class="cell-name">课程名称</div>
+					<div class="cell-content" v-text="detail.name"></div>
 				</div>
-				<ul class="course-list">
-					<p class="page-loading" v-if="!tops">正在加载</p>
-					<li v-for="top in tops" data-id="{{top.id}}" @click="showDetail">
-						<div class="type" data-type="{{top.type}}"></div>
-						<div class="detail">
-							<div class="name">{{top.name}}</div>
-							<div class="info">
-								<span>{{top.teacher}}</span>
-								<span>{{top.time | timeFormat}}</span>
-							</div>
-							<div class="rate-wrapper">
-								<div class="rate">{{top.rateTimes}} 次评分</div>
-								<div class="comment">{{top.commentTimes}} 条评论</div>
-							</div>
-						</div>
-						<div class="score">{{top.score}}</div>
-					</li>
-				</ul>
+				<div class="detail-cell">
+					<div class="cell-name">授课教师</div>
+					<div class="cell-content" v-text="detail.teacher"></div>
+				</div>
+				<div class="detail-cell">
+					<div class="cell-name">上课时间</div>
+					<div class="cell-content" v-text="detail.time | courseTime"></div>
+				</div>
+				<div class="detail-cell">
+					<div class="cell-name">课程类别</div>
+					<div class="cell-content" v-text="detail.type | courseType"></div>
+				</div>
+				<div class="detail-cell">
+					<div class="cell-name">点名情况</div>
+					<div class="cell-content" v-text="detail.roll | courseRoll"></div>
+				</div>
+				<div class="detail-cell">
+					<div class="cell-name">评分次数</div>
+					<div class="cell-content"><span v-text="detail.rateTimes"></span>次</div>
+				</div>
+				<div class="detail-cell">
+					<div class="cell-name">教师评分</div>
+					<div class="cell-content" v-text="detail.teacherScore / 10"></div>
+				</div>
+				<div class="detail-cell">
+					<div class="cell-name">综合评分</div>
+					<div class="cell-content" v-text="detail.score"></div>
+				</div>
+				<div class="detail-cell">
+					<div class="detail-rate" @click="detailRate">对此课程进行评分</div>
+				</div>
+				<div class="detail-comment">
+					<h4>评论（<span v-text="detail.commentTimes"></span>）</h4>
+					<ul>
+						<li v-for="comment in detail.comments">
+							<p><span v-text="comment.nickname"></span> - <span v-text="comment.time | timeStamp"></span></p>
+							<p v-text="comment.content"></p>
+						</li>
+					</ul>
+				</div>
 			</div>
-			<div class="page" v-if="filter" transition="page">
-				<div class="filter-wrapper">
-					<div class="filter-options" @click="toggleOption($event);">
-						<div class="filter-option">
-							<h4>课程评分</h4>
-							<div class="option option-active" data-option="score=0">不排序</div>
-							<div class="option" data-option="score=1">从低到高</div>
-							<div class="option" data-option="score=2">从高到低</div>
-						</div>
-						<div class="filter-option">
-							<h4>点名情况</h4>
-							<div class="option option-active" data-option="roll=0">不限</div>
-							<div class="option" data-option="roll=4">从不点名</div>
-							<div class="option" data-option="roll=3">偶尔点名</div>
-							<div class="option" data-option="roll=2">经常点名</div>
-							<div class="option" data-option="roll=1">频繁点名</div>
-						</div>
-						<div class="filter-option">
-							<h4>考核方式</h4>
-							<div class="option option-active" data-option="exam=0">不限</div>
-							<div class="option" data-option="exam=3">论文</div>
-							<div class="option" data-option="exam=2">开卷考试</div>
-							<div class="option" data-option="exam=1">闭卷考试</div>
-						</div>
-						<div class="filter-option">
-							<h4>类别</h4>
-							<div class="option option-active" data-option="type=0">所有类别</div>
-							<div class="option" data-option="type=1">自然科学与现代技术</div>
-							<div class="option" data-option="type=2">社会科学与人类发展</div>
-							<div class="option" data-option="type=3">传统文化与世界文明</div>
-							<div class="option" data-option="type=4">医学与生命科学</div>
-							<div class="option" data-option="type=5">人文学科与艺术审美</div>
-						</div>
-						<div class="filter-option">
-							<h4>上课时间</h4>
-							<div class="option option-active" data-option="time=0">所有时间</div>
-							<div class="option" data-option="time=40506">周四下午 5、6 节</div>
-							<div class="option" data-option="time=40708">周四下午 7、8 节</div>
-							<div class="option" data-option="time=other">其他</div>
-						</div>
-						<div class="filter-done" @click="filterDone">筛选</div>
+		</li>
+		<li class="window" v-show="windowShow.filter" transition="slide">
+			<div class="filter">
+				<filter-conditions 
+				:filter-conditions="filterConditions" 
+				:filter-options.sync="filterOptions" 
+				:show-btn="true" 
+				:filter-result.sync="filterResult" 
+				:filter-loading.sync="loading.filter" 
+				:filter-error.sync="error.filter"></filter-conditions>
+			</div>
+
+			<p class="loading" v-show="loading.filter">正在加载</p>
+			<p class="loading" v-show="error.filter">无网络连接</p>
+			<p class="loading" v-show="!loading.filter && (filterResult ? (filterResult.length === 0) : false)">当前条件没有筛选结果</p>
+			<ul class="hot-list" v-show="!loading.filter && !error.filter">
+				<li v-for="course in filterResult" data-code="{{course.code}}" @click="showDetail">
+					<div class="course-icon" data-type="{{course.type}}"></div>
+					<div class="course-detail">
+						<h3 v-text="course.name"></h3>
+						<p class="course-info" v-text="course.teacher"></p>
+						<p class="course-info"><span v-text="course.rateTimes"></span>次评分、<span v-text="course.commentTimes"></span>条评论</p>
 					</div>
-				</div>
-				<p class="page-loading" v-if="filtering">正在加载</p>
-				<p class="page-loading" v-if="filterEmpty">没有筛选结果</p>
-				<ul class="course-list">
-					<li v-for="filter in filters" data-id="{{filter.id}}" @click="showDetail">
-						<div class="type" data-type="{{filter.type}}"></div>
-						<div class="detail">
-							<div class="name">{{filter.name}}</div>
-							<div class="info">
-								<span>{{filter.teacher}}</span>
-								<span>{{filter.time | timeFormat}}节</span>
-							</div>
-							<div class="rate-wrapper">
-								<div class="rate">{{filter.rateTimes}} 次评分</div>
-								<div class="comment">{{filter.commentTimes}} 条评论</div>
-							</div>
+					<div class="course-score course-icon" v-text="course.score"></div>
+				</li>
+			</ul>
+		</li>
+		<li class="window"
+			v-show="windowShow.rate"
+			transition="slide">
+			<div class="rate">
+				<h3>第一步：选择一门你上过的课程</h3>
+				<div class="rate-step">
+					<div class="rate-select-course"
+						v-show="!rateCourseSelected">
+						<div class="search-course-container">
+							<input type="text"
+								id="rate-search-input"
+								placeholder="请输入课程名称/任课老师姓名"@keyup="search($event, 'rate') | debounce 500">
 						</div>
-						<div class="score">{{filter.score}}</div>
-					</li>
-				</ul>
-			</div>
-			<div class="page" v-if="search" transition="page">
-				<p class="page-loading" v-if="searching">正在搜索</p>
-				<p class="page-loading" v-if="searchEmpty">没有搜索结果</p>
-				<ul class="course-list" v-for="search in searchs">
-					<li data-id="{{search.id}}" @click="showDetail">
-						<div class="type" data-type="{{search.type}}"></div>
-						<div class="detail">
-							<div class="name">{{search.name}}</div>
-							<div class="info">
-								<span>{{search.teacher}}</span>
-								<span>{{search.time}} 节</span>
-							</div>
-							<div class="rate-wrapper">
-								<div class="rate">{{search.rateTimes}} 次评分</div>
-								<div class="comment">{{search.commentTimes}} 条评论</div>
-							</div>
-						</div>
-						<div class="score">{{search.score}}</div>
-					</li>
-				</ul>
-			</div>
-			<div class="page" v-if="help" transition="page">
-				<section>
-					<h3>什么是Lessen？</h3>
-					<p><b>不是Lesson！</b></p>
-					<p><b>不是Lesson！</b></p>
-					<p><b>不是Lesson！</b></p>
-					<p>重要的事情说三遍！Lessen 是 e<b>L</b>ectiv<b>E</b> cour<b>S</b>e <b>S</b>ugg<b>E</b>sstio<b>N</b> 的简称，它包含了南昌大学所有二类通识课的信息以及相应的评分和评价。有了它，你再也不必纠结选什么二类通识课了。</p>
-		
-					<h3>怎样使用Lessen？</h3>
-					<p>在Lessen的首页，你可以在最上面看到两个按钮，左边那个是菜单按钮，右边的是搜索按钮，右下角是评分按钮。轻点菜单按钮可以唤出侧边导航栏，轻点搜索按钮可以进入搜索页。<b>轻点评分按钮，即可评分。</b></p>
-					<p>首页默认显示的是排行榜。在菜单按钮下面是排行榜的分类。你可以左右滑动并轻点来查看不同类别的排行榜。</p>
-					<p>在评分页面，你需要先在搜索框中输入你想要评分的课程，并在结果列表中轻点你想要评分的课程，你就可以在<i><b>你将要评分的课程</b></i>中查看相关信息了。<u><b>注意：不同上课时间的同一门课程视为一门课程，这两门课程的评分数据将会共享。排行榜以及评分数据将会每分钟更新一次。评分次数越多，排行榜中的数据就会越准确，对选择课程的帮助就会更大。</b></u></p>
-					<p>在侧边导航栏中，包含了排行版、筛选、评分以及帮助。</p>
-					<p>在筛选中，你可以看到最上面已经显示了默认的筛选条件。当然，你可以自己指定筛选条件。筛选条件中包括课程评分排序、点名情况、考核方式、类别以及上课时间，轻点你想要的条件之后再轻点筛选，即可筛选出符合条件的课程了。</p>
-					<p>在搜索页中，你可以键入你想要搜索的课程名字并回车，便会列出相关的课程。轻点任一课程即可查看该课程的详细信息。</p>
-					<p>在课程的详细界面中，你可以查看这门课程的所有相关信息，并可以轻点“我要对<b>【课程名字】</b>评分”来对一门课程进行评分。</p>
-		
-					<h3>联系我</h3>
-					<p>如果你发现某门课程的数据出错，或者某门课程在系统中找不到，或者你发现了一些bug，或者你有一些建议，你都可以通过微博（<a href="http://weibo.com/u/2515642230" target="_blank">@Roland_Reed</a>）或者邮箱（<a href="mailto:roland_reed@foxmail.com">roland_reed@foxmail.com</a>）与我联系。</p>
-				</section>
-			</div>
-			<div class="page" v-if="rating" transition="page">
-				<div class="rating filter-wrapper">
-					<div class="rating-course">
-						<div class="select-rating-course">
-							<div class="search-rating-course-wrapper">
-								<div class="search-rating-course">
-									<input id="rating-search-input" type="text" placeholder="输入课程名称" autofocus @keyup.enter="ratingSearch" @change="ratingSearch">
-								</div>
-							</div>
-							<div class="rating-tip">在上面输入框中输入你要评分的课程名字，并在下面列表中选择一个来评分。</div>
-							<ul class="search-list rating-search-result">
-								<p class="page-loading" v-if="ratingSearching">正在搜索</p>
-								<p class="page-loading" v-if="ratingSearchEmpty">没有搜索结果</p>
-								<li v-for="rating in ratingSearchs" data-id="{{rating.id}}" @click="ratingSelectCourse">
-									<div class="type search-type" data-type="{{rating.type}}"></div>
-									<div class="search-detail">
-										<div class="search-name">{{rating.name}}</div>
-										<div class="search-teacher">{{rating.teacher}}</div>
+						<div class="search-result">
+							<ul>
+								<p class="loading"
+									v-show="loading.rate">正在加载</p>
+								<p class="loading"
+									v-show="error.rate">无网络连接</p>
+								<p class="loading"
+									v-show="!loading.rate && (rateSearchResult ? (rateSearchResult.length === 0) : false)">无搜索结果</p>
+								<p class="loading"
+								v-show="!loading.rate && !error.rate && !rateSearchResult">在上方输入课程名称以显示候选课程</p>
+								<li v-for="course in rateSearchResult"
+								data-code="{{course.code}}"
+								@click="selectRateCourse">
+									<div class="search-course">
+									<span v-text="course.name"></span>（<span v-text="course.teacher"></span>）
 									</div>
 								</li>
 							</ul>
 						</div>
-						<div class="rating-selected-course">
-							<h4>你将要评分的课程<span v-if="gettingDetail">（正在加载）</span></h4>
-							<ul class="rating-course-list">
-								<li><b>课程名称：</b>{{ratingSelected.name}}</li>
-								<li><b>授课教师：</b>{{ratingSelected.teacher}}</li>
-								<li><b>上课时间：</b>{{ratingSelected.time | timeFormat}}</li>
-								<li><b>课程类别：</b>{{ratingSelected.type | typeFormat}}</li>
-							</ul>
-						</div>
 					</div>
-					<div class="filter-options" @click="toggleOption($event);" v-if="!!ratingSelected.code">
-						<div class="filter-option">
-							<h4>点名情况</h4>
-							<div class="option option-active" data-option="roll=4">从不点名</div>
-							<div class="option" data-option="roll=3">偶尔点名</div>
-							<div class="option" data-option="roll=2">经常点名</div>
-							<div class="option" data-option="roll=1">频繁点名</div>
+					<div class="rate-selected"
+						v-show="rateCourseSelected">
+						<h4>你已选择：</h4>
+						<div class="selected-course-detail">
+							<div class="detail-cell">
+								<div class="cell-name">课程名称</div>
+								<div class="cell-content"
+								v-text="rateOptions.name"></div>
+							</div>
+							<div class="detail-cell">
+								<div class="cell-name">授课教师</div>
+								<div class="cell-content"
+								v-text="rateOptions.teacher"></div>
+							</div>
+							<div class="detail-cell">
+								<div class="cell-name">上课时间</div>
+								<div class="cell-content"
+								v-text="rateOptions.time | courseTime"></div>
+							</div>
 						</div>
-						<div class="filter-option">
-							<h4>考核方式</h4>
-							<div class="option option-active" data-option="exam=3">论文</div>
-							<div class="option" data-option="exam=2">开卷考试</div>
-							<div class="option" data-option="exam=1">闭卷考试</div>
-						</div>
-						<div class="filter-option">
-							<h4>老师评分</h4>
-							<div>你的评分：{{teacherScore}}分，满分10分</div>
-							<input type="range" value="{{teacherScore}}" min="0" max="10" step="1" @change="teacherScoreChange">
-						</div>
-						<div class="filter-option">
-							<h4>对这门课程的评价（可选）</h4>
-							<div id="rating-comment" contenteditable="true"></div>
-						</div>
-						<div class="filter-done" @click="ratingSubmit">提交</div>
+						<div class="reselect-course"
+						@click="changeRateCourse">选择另一门课程</div>
 					</div>
 				</div>
-			</div>
-			<div class="page" v-if="detail" transition="page">
-				<div class="rating-selected-course detail-wrapper">
-					<h3>{{detailData.name}}<span v-if="detailFetching">（正在加载）</span></h3>
-					<ul class="rating-course-list">
-						<li><b>课程名称：</b>{{detailData.name}}</li>
-						<li><b>授课教师：</b>{{detailData.teacher}}</li>
-						<li><b>上课时间：</b>{{detailData.time | timeFormat}}</li>
-						<li><b>课程类别：</b>{{detailData.type | typeFormat}}</li>
-						<li><b>点名情况：</b>{{detailData.roll | rollFormat}}（{{detailData.rollPercent}}%）</li>
-						<li><b>考核方式：</b>{{detailData.exam | examFormat}}（{{detailData.examPercent}}%）</li>
-						<li><b>评分次数：</b>{{detailData.rateTimes}}</li>
-						<li><b>教师评分：</b>{{detailData.teacherScore | teacherScoreFormat}}（满分10分）</li>
-						<li><b>综合评分：</b>{{detailData.score}}</li>
-						<li><b class="detail-rating" @click="ratingCourse" data-id="{{detailData.id}}">我要对{{detailData.name}}评分</b></li>
-					</ul>
-					<div class="detail-comment-wrapper">
-						<h3>评论（{{detailData.commentTimes}}）</h3>
-						<ul>
-							<li v-for="comment in detailData.detailComment">{{comment.content}}</li>
-						</ul>
-					</div>
+				<h3>第二步：选择合适的选项</h3>
+				<div class="filter" id="rate-options">
+					<filter-conditions
+						:filter-conditions="rateConditions"
+						:filter-options.sync="rateOptions"
+						:show-btn="false"></filter-conditions>
 				</div>
+				<h3>第三步：写一段评价（可选）</h3>
+				<div class="rate-comment"
+					id="rate-comment" 
+					contenteditable="true"
+					@focus="rateComment"
+					@blur="rateComment">
+					<p style="color: #999;" id="rate-comment-placeholder">输入你的评价</p>
+				</div>
+				<h3>第四步：选一个你喜爱的昵称（可选）</h3>
+				<div class="rate-nickname">
+					<input type="text" v-model="rateOptions.nickname" placeholder="昵称只用于显示在你的评论上方，不作为身份证明">
+				</div>
+				<div class="filter-btn"
+				@click="submitRate">提交</div>
 			</div>
-		</div>
-	</div>
-	<script data-main="scripts/app.min.js?v=20160523" src="https://cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+		</li>
+		<li class="window" v-show="windowShow.search" transition="slide">
+			<ul class="hot-list">
+				<p class="loading" v-show="loading.search">正在加载</p>
+				<p class="loading" v-show="error.search">无网络连接</p>
+				<p class="loading" v-show="!loading.search && (searchResult ? (searchResult.length === 0) : false)">当前条件没有搜索结果</p>
+				<p class="loading" v-show="!loading.search && !error.search && !searchResult">在上方输入课程名称/老师姓名以显示搜索结果</p>
+				<li v-for="course in searchResult" data-code="{{course.code}}" @click="showDetail">
+					<div class="course-icon" data-type="{{course.type}}"></div>
+					<div class="course-detail">
+						<h3 v-text="course.name"></h3>
+						<p class="course-info" v-text="course.teacher"></p>
+						<p class="course-info"><span v-text="course.rateTimes"></span>次评分、<span v-text="course.commentTimes"></span>条评论</p>
+					</div>
+					<div class="course-score course-icon" v-text="course.score"></div>
+				</li>
+			</ul>
+		</li>
+		<li class="window" v-show="windowShow.help" transition="slide">
+			<section class="help">
+				<h3>什么是Lessen？</h3>
+				<p><b>不是Lesson！</b></p>
+				<p><b>不是Lesson！</b></p>
+				<p><b>不是Lesson！</b></p>
+				<p>重要的事情说三遍！Lessen 是 e<b>L</b>ectiv<b>E</b> cour<b>S</b>e <b>S</b>ugg<b>E</b>sstio<b>N</b> 的简称，它包含了南昌大学所有二类通识课的信息以及相应的评分和评价。有了它，你再也不必纠结选什么二类通识课了。</p>
+	
+				<h3>怎样使用Lessen？</h3>
+				<p>在Lessen的首页，你可以在最上面看到两个按钮，左边那个是菜单按钮，右边的是搜索按钮，右下角是评分按钮。轻点菜单按钮或者在屏幕上向右滑动即可唤出侧边导航栏，轻点搜索按钮可以进入搜索页。<b>轻点评分按钮，即可评分。</b></p>
+				<p>首页默认显示的是排行榜。在菜单按钮下面是排行榜的分类。在支持触摸的设备上你可以左右滑动（电脑上请在分类上滚动鼠标滚轮）并轻点来查看不同类别的排行榜。</p>
+				<p>在评分页面，你需要先在搜索框中输入你想要评分的课程，并在结果列表中轻点你想要评分的课程，就会显示你要评分的课程的相关信息，选择合适的选项，评论内容是可选的。<u><b>注意：不同上课时间的同一门课程视为一门课程，这两门课程的评分数据将会共享。排行榜以及评分数据将会每5分钟更新一次。评分次数越多，排行榜中的数据就会越准确，对选择课程的帮助就会更大。</b></u></p>
+				<p>在筛选中，你可以看到最上面已经显示了默认的筛选条件。当然，你可以自己指定筛选条件。筛选条件中包括课程评分排序（升序或者降序）、点名情况、考核方式、类别以及上课时间，轻点你想要的条件之后再轻点筛选，即可筛选出符合条件的课程了。</p>
+				<p>在搜索页中，你可以键入你想要搜索的课程名字或者老师的名字，便会列出相关的课程。轻点任一课程即可查看该课程的详细信息。</p>
+			</section>
+		</li>
+		<li class="window" v-show="windowShow.about" transition="slide">
+			<section class="help">
+				<h3>关于Lessen</h3>
+				<p>此项目的源代码发布在GitHub（<a href="https://github.com/roland-reed/Lessen/">Lessen</a>）上，欢迎star。</p>
+				<h3>联系我</h3>
+				<p>如果你发现某门课程的数据出错，或者某门课程在系统中找不到，或者你发现了一些bug，或者你有一些建议，你都可以通过微博（<a href="http://weibo.com/u/2515642230" target="_blank">@Roland_Reed</a>）或者邮箱（<a href="mailto:roland_reed@foxmail.com">roland_reed@foxmail.com</a>）与我联系。</p>
+			</section>
+		</li>
+	</ul>
+	<script src="/libraries/require.min.js" data-main="./js/app.js" defer async="true"></script>
 </body>
 </html>

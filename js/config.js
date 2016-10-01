@@ -1,3 +1,11 @@
+require.config({
+	paths: {
+		vue: 'https://cdn.bootcss.com/vue/1.0.26/vue.min',
+		reqwest: 'https://cdn.bootcss.com/reqwest/2.0.5/reqwest.min',
+		qwery: 'https://cdn.bootcss.com/qwery/4.0.0/qwery'
+	}
+});
+
 let config = {
 	filterConditions: [{
 		key: 'rate',

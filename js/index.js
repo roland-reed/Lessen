@@ -1,11 +1,3 @@
-require.config({
-	paths: {
-		vue: 'https://cdn.bootcss.com/vue/1.0.26/vue.min',
-		reqwest: 'https://cdn.bootcss.com/reqwest/2.0.5/reqwest.min',
-		qwery: 'https://cdn.bootcss.com/qwery/4.0.0/qwery'
-	}
-});
-
 require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 	new Vue({
 		el: '#app',
@@ -34,6 +26,10 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 				filter: false,
 				search: false
 			},
+			systemStatus: {
+				rateTimes: '正在加载...',
+				commentTimes: '正在加载...'
+			},
 			// 侧边栏状态
 			slideToHideSidebarPosition: {
 				startX: 0,
@@ -46,6 +42,7 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 				startY: 0
 			},
 			previousSidebar: 'hotList',
+			scrollTop: 0,
 			// 标题栏
 			title: '热门课程',
 			titleText: config.titleText,
@@ -166,7 +163,7 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 						movedX = e.touches[0].clientX - this.slideToHideSidebarPosition.startX;
 						movedY = Math.abs(e.touches[0].clientY - this.slideToHideSidebarPosition.startY);
 
-						if (movedY < 25) {
+						if (movedY < 50) {
 							// 让侧边栏跟随手指滑动
 							if (action === 'hide') {
 								movedX = movedX > 0 ? 0 : movedX;
@@ -189,12 +186,12 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 						sidebar.classList.remove('on-touch-move');
 
 						// 如果手指滑动小于25px则回到原先的状态
-						if (action === 'hide' && this.slideToHideSidebarPosition.movedX < -50 && this.slideToHideSidebarPosition.movedY < 25) {
+						if (action === 'hide' && this.slideToHideSidebarPosition.movedX < -50 && this.slideToHideSidebarPosition.movedY < 50) {
 							sidebar.style.transform = 'translateX(-210px)';
 							sidebar.removeAttribute('style');
 							this.isShowSidebar = false;
 							e.preventDefault();
-						} else if (action === 'open' && this.slideToHideSidebarPosition.movedX > 50 && this.slideToHideSidebarPosition.movedY < 25) {
+						} else if (action === 'open' && this.slideToHideSidebarPosition.movedX > 50 && this.slideToHideSidebarPosition.movedY < 50) {
 							sidebar.style.transform = 'translateX(0px)';
 							sidebar.removeAttribute('style');
 							this.isShowSidebar = true;
@@ -242,6 +239,7 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 				type = target.getAttribute('data-type');
 				position = 'translateX(' + (index * 150) + 'px)';
 				this.tabBarPosition.transform = position;
+				window.scrollTo(0, 0);
 
 				if (!noLoadFlag) {
 					this.loadHotList(type, previousIndex);
@@ -466,6 +464,21 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 					tab.style.transform = 'translateX(' + position + 'px)';
 				}
 			},
+			loadSystemStatus() {
+				reqwest({
+					url: '/lessen/systemStatus',
+					type: 'json',
+					method: 'GET'
+				}).then(res => {
+					if (res.code === 0) {
+						this.systemStatus = res.data;
+					} else {
+						this.showToast(config.MSG.NETWORK_ERROR);
+					}
+				}).fail(() => {
+					this.showToast(config.MSG.NETWORK_ERROR);
+				});
+			},
 			changeWindow(windowOption) {
 				Object.keys(this.windowShow).forEach(key => {
 					if (this.windowShow[key]) {
@@ -497,8 +510,10 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 					this.showSearch = false;
 				}
 
-				// 由于切换不同页面时会记住上一页的位置，所以需要让页面滚动回顶部
-				window.scrollTo(0, 0);
+				// 如果是关于页则加载评分和评价次数
+				if (windowOption === 'about') {
+					this.loadSystemStatus();
+				}
 
 				// windowShow中没有searchBtn属性，所以把searchBtn转为search
 				windowOption = windowOption === 'searchBtn' ? 'search' : windowOption;
@@ -506,6 +521,21 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 				this.titleContainerStyle['background-color'] = this.titleBackgroundColor[windowOption];
 				this.windowShow[windowOption] = true;
 				this.isShowSidebar = false;
+
+				// 记录页面滚动位置
+				if (windowOption === 'detail') {
+					this.scrollTop = document.body.scrollTop;
+				}
+
+				// 如果从detail切换到其他页面，恢复到之前的页面位置
+				Vue.nextTick(() => {
+					if (windowOption === 'detail') {
+						window.scrollTo(0, 0);
+					} else {
+						window.scrollTo(0, this.scrollTop);
+						this.scrollTop = 0;
+					}
+				});
 			},
 			rateComment(e) {
 				let target = e.target;

@@ -1,4 +1,4 @@
-require(['vue', 'reqwest'], function(Vue, reqwest) {
+require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 	Vue.component('filter-conditions', {
 		props: {
 			showBtn: {
@@ -79,13 +79,19 @@ require(['vue', 'reqwest'], function(Vue, reqwest) {
 			filter() {
 				this.filterLoading = true;
 				this.filterError = false;
+				let scrollTop = parseInt(window.getComputedStyle($('.main-filter')[0]).getPropertyValue('height'))
+
 				reqwest({
-					url: `${devUrl}/lessen/filter`,
+					url: '/lessen/filter',
 					type: 'json',
 					data: this.filterOptions
 				}).then(res => {
 					this.filterLoading = false;
-					window.scrollTo(0, 250);
+
+					Vue.nextTick(() => {
+						window.scrollTo(0, scrollTop);
+					});
+
 					if (res.code === 0) {
 						this.filterResult = res.data;
 					}

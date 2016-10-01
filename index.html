@@ -265,6 +265,10 @@
 			</section>
 		</li>
 		<li class="window" v-show="windowShow.about" transition="slide">
+			<section class="help system-status">
+				<h3>统计信息</h3>
+				<p>截至当前，共有<span v-text="systemStatus.rateTimes"></span>人次参与评分，共有<span v-text="systemStatus.commentTimes"></span>条评论。</p>
+			</section>
 			<section class="help">
 				<h3>联系我</h3>
 				<p>如果你发现某门课程的数据出错，或者某门课程在系统中找不到，或者你发现了一些bug，或者你有一些建议，你都可以通过微博（<a href="http://weibo.com/u/2515642230" target="_blank">@Roland_Reed</a>）或者邮箱（<a href="mailto:roland_reed@foxmail.com">roland_reed@foxmail.com</a>）与我联系。</p>

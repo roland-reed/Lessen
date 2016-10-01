@@ -13,7 +13,7 @@ let gulp = require('gulp'),
 	reload = broswerSync.reload;
 
 gulp.task('js', function() {
-	return gulp.src(['./js/config.js', './js/filter.js', './js/component.js', './js/utils.js', './js/index.js'])
+	return gulp.src(['./js/polyfill.js', './js/config.js', './js/filter.js', './js/component.js', './js/utils.js', './js/index.js'])
 		.pipe(sourcemaps.init())
 		.pipe(babel({
 			presets: ['es2015']

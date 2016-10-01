@@ -72,7 +72,7 @@ gulp.task('serve', ['html', 'less', 'staticFiles', 'js'], function() {
 gulp.task('default', ['serve']);
 
 gulp.task('jsBuild', function() {
-	gulp.src(['./js/config.js', './js/filter.js', './js/component.js', './js/utils.js', './js/index.js'])
+	gulp.src(['./js/polyfill.js', './js/config.js', './js/filter.js', './js/component.js', './js/utils.js', './js/index.js'])
 		.pipe(babel({
 			presets: ['es2015']
 		}).on('error', function(e) {

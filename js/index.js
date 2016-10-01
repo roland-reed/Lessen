@@ -528,7 +528,7 @@ require(['vue', 'reqwest', 'qwery'], function(Vue, reqwest, $) {
 				}
 
 				// 如果从detail切换到其他页面，恢复到之前的页面位置
-				Vue.nextTick(() => {
+				this.$nextTick(() => {
 					if (windowOption === 'detail') {
 						window.scrollTo(0, 0);
 					} else {

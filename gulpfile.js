@@ -1,6 +1,6 @@
 'use strict';
 
-let gulp = require('gulp'),
+const gulp = require('gulp'),
 	concat = require('gulp-concat'),
 	uglify = require('gulp-uglify'),
 	less = require('gulp-less'),
@@ -26,7 +26,7 @@ gulp.task('js', function() {
 		.pipe(sourcemaps.write('../maps', {
 			sourceMappingURL: 'sourceMappingURL=data:application/json;charset=utf-8;base64'
 		}))
-		.pipe(gulp.dest('../../assets/lessen/js'));
+		.pipe(gulp.dest('build/js'));
 });
 
 gulp.task('less', function() {
@@ -40,7 +40,7 @@ gulp.task('less', function() {
 		}))
 		.pipe(cleanCss())
 		.pipe(concat('style.css'))
-		.pipe(gulp.dest('../../assets/lessen/css'))
+		.pipe(gulp.dest('build/css'))
 		.pipe(reload({
 			stream: true
 		}));
@@ -55,7 +55,7 @@ gulp.task('html', function() {
 			console.error(e.message);
 			this.emit('end');
 		}))
-		.pipe(gulp.dest('../../assets/lessen'));
+		.pipe(gulp.dest('build'));
 });
 
 gulp.task('serve', ['html', 'less', 'staticFiles', 'js'], function() {
@@ -81,12 +81,12 @@ gulp.task('jsBuild', function() {
 		}))
 		.pipe(uglify())
 		.pipe(concat('app.js'))
-		.pipe(gulp.dest('../../assets/lessen/js'));
+		.pipe(gulp.dest('build/js'));
 });
 
 gulp.task('staticFiles', function() {
 	gulp.src('./css/fonts/**/*')
-		.pipe(gulp.dest('../../assets/lessen/css/fonts'));
+		.pipe(gulp.dest('build/css/fonts'));
 });
 
 gulp.task('build', ['html', 'less', 'staticFiles', 'jsBuild']);
